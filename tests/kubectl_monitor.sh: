@@ -1,0 +1,64 @@
+#!/bin/bash
+
+NAMESPACE="sas-viya"
+INTERVAL=30  # seconds
+
+monitor_sas_viya() {
+    clear
+    echo "======================================="
+    echo "SAS Viya Monitoring Dashboard"
+    echo "Time: $(date)"
+    echo "======================================="
+    
+    # Pod Summary
+    echo -e "\n📊 POD STATUS:"
+    kubectl get pods -n ${NAMESPACE} --no-headers | \
+        awk '{print $3}' | sort | uniq -c | \
+        awk '{printf "  %s: %d\n", $2, $1}'
+    
+    # Deployment Status
+    echo -e "\n🚀 DEPLOYMENTS:"
+    kubectl get deployments -n ${NAMESPACE} --no-headers | \
+        awk '{printf "  %-40s %s/%s\n", $1, $2, $3}' | head -10
+    
+    # StatefulSet Status
+    echo -e "\n💾 STATEFULSETS:"
+    kubectl get statefulsets -n ${NAMESPACE} --no-headers | \
+        awk '{printf "  %-40s %s/%s\n", $1, $2, $3}'
+    
+    # Service Status
+    echo -e "\n🌐 SERVICE ENDPOINTS:"
+    for service in sas-logon-app sas-cas-server sas-postgres; do
+        endpoints=$(kubectl get endpoints ${service} -n ${NAMESPACE} \
+            --no-headers 2>/dev/null | awk '{print $2}')
+        if [ ! -z "$endpoints" ]; then
+            echo "  ${service}: ${endpoints}"
+        else
+            echo "  ${service}: No endpoints"
+        fi
+    done
+    
+    # Resource Usage
+    echo -e "\n📈 TOP RESOURCE CONSUMERS:"
+    kubectl top pods -n ${NAMESPACE} --no-headers | \
+        sort -k2 -rn | head -5 | \
+        awk '{printf "  %-40s CPU: %s, Memory: %s\n", $1, $2, $3}'
+    
+    # Recent Events
+    echo -e "\n⚠️  RECENT WARNINGS:"
+    kubectl get events -n ${NAMESPACE} \
+        --field-selector type=Warning \
+        --sort-by='.lastTimestamp' \
+        --no-headers | tail -3 | \
+        awk '{printf "  %s: %s\n", $1, $4}'
+}
+
+# Continuous monitoring
+if [ "$1" == "--watch" ]; then
+    while true; do
+        monitor_sas_viya
+        sleep ${INTERVAL}
+    done
+else
+    monitor_sas_viya
+fi
