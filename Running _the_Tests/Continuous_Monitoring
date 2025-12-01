@@ -1,0 +1,5 @@
+# One-time check
+./tests/kubectl_monitor.sh
+
+# Continuous monitoring (updates every 30 seconds)
+./tests/kubectl_monitor.sh --watch
