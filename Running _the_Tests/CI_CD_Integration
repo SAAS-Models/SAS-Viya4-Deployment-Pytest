@@ -1,0 +1,15 @@
+# .gitlab-ci.yml example
+test-sas-viya-kubectl:
+  stage: test
+  image: bitnami/kubectl:latest
+  before_script:
+    - apt-get update && apt-get install -y python3 python3-pip
+    - pip3 install pytest pyyaml
+    - ./setup_kubectl_tunnel.sh
+  script:
+    - ./tests/kubectl_basic_tests.sh
+    - python3 tests/kubectl_health_checks.py
+    - pytest tests/test_kubectl_integration.py --junit-xml=reports/junit.xml
+  artifacts:
+    reports:
+      junit: reports/junit.xml
