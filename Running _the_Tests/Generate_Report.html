@@ -1,0 +1,50 @@
+#!/bin/bash
+# generate_kubectl_report.sh
+
+NAMESPACE="sas-viya"
+REPORT_FILE="kubectl_test_report.html"
+
+cat > ${REPORT_FILE} <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SAS Viya kubectl Test Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .pass { color: green; }
+        .fail { color: red; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>SAS Viya kubectl Test Report</h1>
+    <p>Generated: $(date)</p>
+    <p>Namespace: ${NAMESPACE}</p>
+    
+    <h2>Test Results</h2>
+    <table>
+        <tr>
+            <th>Test</th>
+            <th>Status</th>
+            <th>Details</th>
+        </tr>
+EOF
+
+# Run tests and append results
+./tests/kubectl_basic_tests.sh 2>&1 | while IFS= read -r line; do
+    if [[ $line == *"PASSED"* ]]; then
+        echo "<tr><td>$line</td><td class='pass'>PASS</td><td></td></tr>" >> ${REPORT_FILE}
+    elif [[ $line == *"FAILED"* ]]; then
+        echo "<tr><td>$line</td><td class='fail'>FAIL</td><td></td></tr>" >> ${REPORT_FILE}
+    fi
+done
+
+cat >> ${REPORT_FILE} <<EOF
+    </table>
+</body>
+</html>
+EOF
+
+echo "Report generated: ${REPORT_FILE}"
